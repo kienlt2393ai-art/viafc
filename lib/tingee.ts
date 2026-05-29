@@ -62,31 +62,21 @@ export function verifyTingeeWebhook(
 /**
  * Tự động match giao dịch Tingee với đóng tiền tháng của thành viên
  */
-function norm(str: string): string {
-  return str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-}
-
-/**
- * Tự động match giao dịch Tingee với đóng tiền tháng của thành viên.
- *
- * Dùng word-boundary (exact word) thay vì includes() để tránh false positive:
- *   "Anh Tú" không bị match nhầm vào "Vũ Mạnh Tuân" vì "anh" ≠ "manh"
- *
- * Logic: lấy các từ đơn lẻ trong nội dung CK rồi so sánh với từng phần tên
- * thành viên. Cần match ít nhất 2 phần (hoặc toàn bộ nếu tên chỉ 1 từ).
- */
 export function matchTransactionToMember(
   content: string,
   memberNames: string[]
 ): string | null {
   if (!content) return null;
-
-  // Tách nội dung CK thành tập hợp từ (word set) để so sánh chính xác
-  const contentWords = new Set(norm(content).split(/\s+/).filter(Boolean));
+  const normalized = content.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
   for (const name of memberNames) {
-    const nameParts = norm(name).split(/\s+/).filter(Boolean);
-    const matchCount = nameParts.filter((part) => contentWords.has(part)).length;
+    const normalizedName = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "");
+
+    const nameParts = normalizedName.split(" ");
+    const matchCount = nameParts.filter((part) => normalized.includes(part)).length;
 
     if (matchCount >= Math.min(2, nameParts.length)) {
       return name;
