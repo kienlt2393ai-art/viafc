@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
       ? new Date(transactionDate.replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/, "$1-$2-$3T$4:$5:$6")).toISOString()
       : new Date().toISOString();
 
-    if (amount < CONTRIBUTION_PER_MEMBER) {
+    // Bỏ qua giao dịch quá nhỏ (< 10k) — tránh spam test
+    if (amount < 10_000) {
       return NextResponse.json({ code: "00", message: "Success" });
     }
 
