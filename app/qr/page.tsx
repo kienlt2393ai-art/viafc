@@ -4,10 +4,10 @@ import { useState } from "react";
 import { X, Maximize2, Copy, Check, Download } from "lucide-react";
 
 const QR_CODES = [
-  { id: 1, label: "Tài khoản 1", src: "/qr/qr-1.png" },
-  { id: 2, label: "Tài khoản 2", src: "/qr/qr-2.png" },
-  { id: 3, label: "Tài khoản 3", src: "/qr/qr-3.png" },
-  { id: 4, label: "Tài khoản 4", src: "/qr/qr-4.png" },
+  { id: 1, label: "Thành viên",  src: "/qr/member.png" },
+  { id: 2, label: "Kim Sơn",     src: "/qr/Kim Son.png" },
+  { id: 3, label: "Nông Tiến",   src: "/qr/nong tien.png" },
+  { id: 4, label: "Thái An",     src: "/qr/Thai an.png" },
 ];
 
 export default function QRPage() {
