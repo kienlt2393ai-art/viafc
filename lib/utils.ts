@@ -25,8 +25,17 @@ export function getMonthLabel(year: number, month: number): string {
   return `Tháng ${month}/${year}`;
 }
 
-export const FIELD_COST_PER_MONTH = 6_950_000;
+// Tiền đóng quỹ mỗi thành viên/tháng
 export const CONTRIBUTION_PER_MEMBER = 300_000;
+
+// Tiền sân mặc định mỗi trận
+export const FIELD_COST_PER_MATCH = 600_000;
+
+// Giữ alias cũ để không break code khác
+export const FIELD_COST_PER_MONTH = FIELD_COST_PER_MATCH;
+
+// Danh sách đối thủ cố định
+export const OPPONENTS = ["Kim Son", "Nong Tien", "Thai An"];
 
 /**
  * Tính % Vỉa chịu dựa vào kết quả trận đấu
@@ -35,7 +44,7 @@ export const CONTRIBUTION_PER_MEMBER = 300_000;
  */
 export function calcFieldSplit(
   result: MatchResult,
-  fieldCost: number = FIELD_COST_PER_MONTH
+  fieldCost: number = FIELD_COST_PER_MATCH
 ): {
   viaPercentage: number;
   opponentPercentage: number;
@@ -72,4 +81,9 @@ export function resultBadge(result: MatchResult): string {
 export function getCurrentYearMonth(): { year: number; month: number } {
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+/** Chuẩn hoá chuỗi tiếng Việt (bỏ dấu, lowercase) để so sánh */
+export function normalizeVietnamese(str: string): string {
+  return str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 }

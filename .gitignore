@@ -35,3 +35,5 @@ next-env.d.ts
 
 # claude
 .claude/
+
+.vercel
