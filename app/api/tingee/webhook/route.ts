@@ -1,59 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
-import {
-  verifyTingeeWebhook,
-  matchTransactionToMember,
-  type TingeeWebhookPayload,
-} from "@/lib/tingee";
+import { verifyTingeeWebhook, matchTransactionToMember, type TingeeWebhookPayload } from "@/lib/tingee";
 import { getCurrentYearMonth, CONTRIBUTION_PER_MEMBER } from "@/lib/utils";
 
 /**
  * POST /api/tingee/webhook
  *
- * Tingee gửi POST request đến đây mỗi khi có giao dịch mới.
- * Cấu hình webhook URL trong Tingee dashboard:
- * https://your-app.vercel.app/api/tingee/webhook
+ * Tingee gửi POST request khi có giao dịch mới.
+ * Cấu hình trong Tingee: Avatar → Developers → Webhook URL:
+ * https://via-fc.vercel.app/api/tingee/webhook
+ *
+ * Tingee retry 5 lần (cách 5 phút) nếu response không phải code "00" hoặc "02"
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const signature =
-    req.headers.get("x-tingee-signature") ??
-    req.headers.get("x-signature") ??
-    "";
+  const signature = req.headers.get("x-signature") ?? "";
+  const timestamp = req.headers.get("x-request-timestamp") ?? "";
 
-  // Xác thực signature
-  if (!verifyTingeeWebhook(rawBody, signature)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  if (!verifyTingeeWebhook(rawBody, timestamp, signature)) {
+    return NextResponse.json({ code: "09", message: "Invalid signature" }, { status: 401 });
   }
 
   let payload: TingeeWebhookPayload;
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ code: "01", message: "Invalid JSON" }, { status: 400 });
   }
 
-  // Chỉ xử lý giao dịch tiền vào
-  if (payload.event !== "transaction.created") {
-    return NextResponse.json({ ok: true, skipped: true });
-  }
-
-  const tx = payload.data;
-  if (tx.type !== "credit" || tx.amount < CONTRIBUTION_PER_MEMBER) {
-    return NextResponse.json({ ok: true, skipped: "not credit or too small" });
+  // Bỏ qua giao dịch nhỏ hơn mức đóng tiền
+  if (payload.amount < CONTRIBUTION_PER_MEMBER) {
+    return NextResponse.json({ code: "00", message: "Success" });
   }
 
   const supabase = createServerClient();
 
-  // Tránh duplicate
+  // Tránh duplicate theo transactionCode
   const { data: existing } = await supabase
     .from("tingee_transactions")
     .select("id")
-    .eq("tingee_id", tx.id)
+    .eq("tingee_id", payload.transactionCode)
     .single();
 
   if (existing) {
-    return NextResponse.json({ ok: true, duplicate: true });
+    return NextResponse.json({ code: "02", message: "Already processed" });
   }
 
   // Lấy danh sách thành viên chưa đóng tiền tháng này
@@ -65,51 +55,46 @@ export async function POST(req: NextRequest) {
     .eq("month", month)
     .eq("paid", false);
 
-  // Tự động match tên từ nội dung giao dịch
-  const memberNames =
-    unpaidContributions?.map((c: any) => c.member?.name ?? "") ?? [];
-  const matchedName = matchTransactionToMember(
-    tx.description ?? "",
-    memberNames
-  );
+  // Tự động match tên từ nội dung chuyển khoản
+  const memberNames = unpaidContributions?.map((c: any) => c.member?.name ?? "") ?? [];
+  const matchedName = matchTransactionToMember(payload.content ?? "", memberNames);
 
   let matchedContributionId: string | null = null;
   let status: "matched" | "pending" = "pending";
 
   if (matchedName && unpaidContributions) {
-    const matched = unpaidContributions.find(
-      (c: any) => c.member?.name === matchedName
-    );
+    const matched = unpaidContributions.find((c: any) => c.member?.name === matchedName);
     if (matched) {
       matchedContributionId = matched.id;
       status = "matched";
 
-      // Đánh dấu đã đóng tiền
       await supabase
         .from("monthly_contributions")
         .update({
           paid: true,
           paid_at: new Date().toISOString(),
-          tingee_ref: tx.id,
+          tingee_ref: payload.transactionCode,
         })
         .eq("id", matched.id);
     }
   }
 
-  // Lưu giao dịch
   await supabase.from("tingee_transactions").insert({
-    tingee_id: tx.id,
-    amount: tx.amount,
-    description: tx.description,
-    transaction_at: tx.transaction_time,
+    tingee_id: payload.transactionCode,
+    amount: payload.amount,
+    description: payload.content,
+    transaction_at: payload.transactionDate
+      ? new Date(
+          payload.transactionDate.replace(
+            /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/,
+            "$1-$2-$3T$4:$5:$6"
+          )
+        ).toISOString()
+      : new Date().toISOString(),
     matched_contribution_id: matchedContributionId,
     status,
-    raw_data: tx as unknown as Record<string, unknown>,
+    raw_data: payload as unknown as Record<string, unknown>,
   });
 
-  return NextResponse.json({
-    ok: true,
-    matched: status === "matched",
-    matchedName,
-  });
+  return NextResponse.json({ code: "00", message: "Success" });
 }
