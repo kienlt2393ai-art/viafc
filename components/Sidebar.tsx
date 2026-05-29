@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Trophy, Wallet, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, Trophy, Wallet, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -10,7 +10,7 @@ const navItems = [
   { href: "/members",  label: "Thành viên", icon: Users },
   { href: "/matches",  label: "Trận đấu",  icon: Trophy },
   { href: "/finances", label: "Thu chi",   icon: Wallet },
-  { href: "/tingee",   label: "Tingee",    icon: CreditCard },
+  { href: "/qr",       label: "QR",        icon: QrCode },
 ];
 
 export default function Sidebar() {
