@@ -40,7 +40,8 @@ export const OPPONENTS = ["Kim Son", "Nong Tien", "Thai An"];
 /**
  * Tính % Vỉa chịu dựa vào kết quả trận đấu
  * Thắng: Vỉa 40% - Đối thủ 60%
- * Thua/Hòa: Vỉa 60% - Đối thủ 40%
+ * Hòa:   Vỉa 50% - Đối thủ 50%
+ * Thua:  Vỉa 60% - Đối thủ 40%
  */
 export function calcFieldSplit(
   result: MatchResult,
@@ -51,7 +52,7 @@ export function calcFieldSplit(
   viaAmount: number;
   opponentAmount: number;
 } {
-  const viaPercentage = result === "win" ? 40 : 60;
+  const viaPercentage = result === "win" ? 40 : result === "draw" ? 50 : 60;
   const opponentPercentage = 100 - viaPercentage;
   const viaAmount = Math.round(fieldCost * (viaPercentage / 100));
   const opponentAmount = fieldCost - viaAmount;

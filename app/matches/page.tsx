@@ -57,9 +57,12 @@ export default function MatchesPage() {
     if (!opponentName) return;
     setSaving(true);
     const today = new Date();
+    const dateStr = today.toISOString().split("T")[0];
     const split = calcFieldSplit(selResult, FIELD_COST_PER_MATCH);
+
+    // Lưu trận đấu
     await supabase.from("matches").insert({
-      match_date: today.toISOString().split("T")[0],
+      match_date: dateStr,
       opponent: opponentName,
       result: selResult,
       field_cost: FIELD_COST_PER_MATCH,
@@ -70,6 +73,18 @@ export default function MatchesPage() {
       year: today.getFullYear(),
       month: today.getMonth() + 1,
     });
+
+    // Tự động đẩy tiền sân Vỉa phải chịu vào Thu chi
+    await supabase.from("expenses").insert({
+      description: `Tiền sân vs ${opponentName}`,
+      amount: split.viaAmount,
+      category: "field",
+      expense_date: dateStr,
+      notes: `${resultLabel(selResult)} · Vỉa ${split.viaPercentage}% / ${opponentName} ${split.opponentPercentage}%`,
+      year: today.getFullYear(),
+      month: today.getMonth() + 1,
+    });
+
     setSaving(false);
     setShowForm(false);
     loadMatches();
