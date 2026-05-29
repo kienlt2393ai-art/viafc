@@ -18,10 +18,12 @@ export function getSupabase(): SupabaseClient {
   return _browserClient;
 }
 
-// Alias để các page hiện tại không cần đổi tên
+// Alias lazy — bind để giữ đúng `this` context cho Supabase client
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
-    return (getSupabase() as any)[prop];
+    const client = getSupabase();
+    const value = (client as any)[prop];
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });
 
