@@ -3,6 +3,10 @@ import { createServerClient } from "@/lib/supabase";
 import { verifyTingeeWebhook, matchTransactionToMember } from "@/lib/tingee";
 import { getCurrentYearMonth, CONTRIBUTION_PER_MEMBER } from "@/lib/utils";
 
+// Chạy gần Supabase Singapore để giảm latency
+export const preferredRegion = ["sin1", "sin"];
+export const maxDuration = 30;
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature") ?? "";
