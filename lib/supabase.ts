@@ -1,21 +1,29 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Lazy singleton — không gọi createClient lúc module load để tránh crash khi build
+let _browserClient: SupabaseClient | null = null;
 
-// Client-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export function getSupabase(): SupabaseClient {
+  if (!_browserClient) {
+    _browserClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return _browserClient;
+}
 
-// Server-side Supabase client (with service role - dùng trong API routes)
-export function createServerClient() {
+// Alias để các page hiện tại không cần đổi tên
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (getSupabase() as any)[prop];
+  },
+});
+
+export function createServerClient(): SupabaseClient {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }
