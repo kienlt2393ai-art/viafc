@@ -40,6 +40,26 @@ export default function FinancesPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    const { year: curYear, month: curMonth } = getCurrentYearMonth();
+
+    // Tự sinh contributions cho thành viên active nếu xem tháng hiện tại
+    if (selYear === curYear && selMonth === curMonth) {
+      const { data: activeMembers } = await supabase
+        .from("members").select("id").eq("is_active", true);
+      if (activeMembers?.length) {
+        await supabase.from("monthly_contributions").upsert(
+          activeMembers.map((m: any) => ({
+            member_id: m.id,
+            year: selYear,
+            month: selMonth,
+            amount: CONTRIBUTION_PER_MEMBER,
+            paid: false,
+          })),
+          { onConflict: "member_id,year,month", ignoreDuplicates: true }
+        );
+      }
+    }
+
     const [{ data: cData }, { data: eData }] = await Promise.all([
       supabase
         .from("monthly_contributions")

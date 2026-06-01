@@ -6,10 +6,9 @@ import Modal, { FormField, inputClass } from "@/components/Modal";
 import {
   formatCurrency,
   formatDate,
-  getCurrentYearMonth,
   CONTRIBUTION_PER_MEMBER,
 } from "@/lib/utils";
-import { Plus, Pencil, UserX, UserCheck, RefreshCw } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck } from "lucide-react";
 import type { Member } from "@/lib/types";
 
 type FormData = {
@@ -19,7 +18,6 @@ type FormData = {
 };
 
 export default function MembersPage() {
-  const { year, month } = getCurrentYearMonth();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,16 +78,7 @@ export default function MembersPage() {
         .select()
         .single();
 
-      // Tự động tạo contribution tháng hiện tại
-      if (newMember) {
-        await supabase.from("monthly_contributions").upsert({
-          member_id: newMember.id,
-          year,
-          month,
-          amount: CONTRIBUTION_PER_MEMBER,
-          paid: false,
-        });
-      }
+      // Không cần tạo contribution thủ công — finances page tự sinh khi load
     }
     setSaving(false);
     setModalOpen(false);
@@ -107,26 +96,6 @@ export default function MembersPage() {
     loadMembers();
   }
 
-  /**
-   * Tạo danh sách đóng tiền cho tháng hiện tại cho tất cả thành viên active
-   */
-  async function generateContributions() {
-    const active = members.filter((m) => m.is_active);
-    if (active.length === 0) return;
-    const rows = active.map((m) => ({
-      member_id: m.id,
-      year,
-      month,
-      amount: CONTRIBUTION_PER_MEMBER,
-      paid: false,
-    }));
-    await supabase.from("monthly_contributions").upsert(rows, {
-      onConflict: "member_id,year,month",
-      ignoreDuplicates: true,
-    });
-    alert(`Đã tạo danh sách đóng tiền tháng ${month}/${year} cho ${active.length} thành viên.`);
-  }
-
   const activeCount = members.filter((m) => m.is_active).length;
 
   return (
@@ -139,22 +108,13 @@ export default function MembersPage() {
             {activeCount} đang hoạt động
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={generateContributions}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
-          >
-            <RefreshCw size={14} />
-            Tạo danh sách tháng này
-          </button>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-500 transition-colors"
-          >
-            <Plus size={16} />
-            Thêm thành viên
-          </button>
-        </div>
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-500 transition-colors"
+        >
+          <Plus size={16} />
+          Thêm thành viên
+        </button>
       </div>
 
       {/* Filter */}
