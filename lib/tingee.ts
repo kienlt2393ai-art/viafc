@@ -62,20 +62,20 @@ export function verifyTingeeWebhook(
 /**
  * Tự động match giao dịch Tingee với đóng tiền tháng của thành viên
  */
+function stripDiacritics(str: string): string {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
 export function matchTransactionToMember(
   content: string,
   memberNames: string[]
 ): string | null {
   if (!content) return null;
-  const normalized = content.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const normalized = stripDiacritics(content);
 
   for (const name of memberNames) {
-    const normalizedName = name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "");
-
-    const nameParts = normalizedName.split(" ");
+    const normalizedName = stripDiacritics(name);
+    const nameParts = normalizedName.split(" ").filter(Boolean);
     const matchCount = nameParts.filter((part) => normalized.includes(part)).length;
 
     if (matchCount >= Math.min(2, nameParts.length)) {

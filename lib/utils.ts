@@ -87,5 +87,5 @@ export function getCurrentYearMonth(): { year: number; month: number } {
 
 /** Chuẩn hoá chuỗi tiếng Việt (bỏ dấu, lowercase) để so sánh */
 export function normalizeVietnamese(str: string): string {
-  return str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }

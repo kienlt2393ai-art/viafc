@@ -74,7 +74,7 @@ export default function MembersPage() {
     } else {
       const { data: newMember } = await supabase
         .from("members")
-        .insert({ name: form.name, phone: form.phone, join_date: form.join_date })
+        .insert({ name: form.name, phone: form.phone, join_date: form.join_date, is_active: true })
         .select()
         .single();
 
