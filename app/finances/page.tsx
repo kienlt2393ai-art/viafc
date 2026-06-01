@@ -192,10 +192,7 @@ export default function FinancesPage() {
             <div className="p-6 text-center text-gray-500 animate-pulse">Đang tải...</div>
           ) : contributions.length === 0 ? (
             <div className="p-6 text-center text-gray-500 text-sm">
-              Chưa có danh sách tháng này.{" "}
-              <a href="/members" className="text-green-400 underline">
-                Tạo danh sách
-              </a>
+              Chưa có dữ liệu tháng này.
             </div>
           ) : (
             <div className="divide-y divide-gray-800">
@@ -227,8 +224,8 @@ export default function FinancesPage() {
                       )}
                     </div>
                   </div>
-                  <span className={`text-sm font-medium ${c.paid ? "text-green-400" : "text-gray-600"}`}>
-                    {c.paid ? formatCurrency(c.amount) : "—"}
+                  <span className={`text-sm font-medium ${c.paid ? "text-green-400" : "text-gray-500"}`}>
+                    {formatCurrency(c.amount || CONTRIBUTION_PER_MEMBER)}
                   </span>
                 </div>
               ))}
