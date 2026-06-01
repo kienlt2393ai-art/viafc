@@ -13,7 +13,6 @@ import type { Member } from "@/lib/types";
 
 type FormData = {
   name: string;
-  phone: string;
   join_date: string;
 };
 
@@ -24,7 +23,6 @@ export default function MembersPage() {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [form, setForm] = useState<FormData>({
     name: "",
-    phone: "",
     join_date: new Date().toISOString().split("T")[0],
   });
   const [saving, setSaving] = useState(false);
@@ -47,7 +45,6 @@ export default function MembersPage() {
     setEditingMember(null);
     setForm({
       name: "",
-      phone: "",
       join_date: new Date().toISOString().split("T")[0],
     });
     setModalOpen(true);
@@ -57,7 +54,6 @@ export default function MembersPage() {
     setEditingMember(m);
     setForm({
       name: m.name,
-      phone: m.phone ?? "",
       join_date: m.join_date,
     });
     setModalOpen(true);
@@ -69,14 +65,15 @@ export default function MembersPage() {
     if (editingMember) {
       await supabase
         .from("members")
-        .update({ name: form.name, phone: form.phone, join_date: form.join_date })
+        .update({ name: form.name, join_date: form.join_date })
         .eq("id", editingMember.id);
     } else {
-      const { data: newMember } = await supabase
+      const { data: newMember, error } = await supabase
         .from("members")
-        .insert({ name: form.name, phone: form.phone, join_date: form.join_date, is_active: true })
+        .insert({ name: form.name, join_date: form.join_date, is_active: true })
         .select()
         .single();
+      if (error) { console.error("[handleSave] insert error:", error); setSaving(false); return; }
 
       // Không cần tạo contribution thủ công — finances page tự sinh khi load
     }
@@ -143,9 +140,6 @@ export default function MembersPage() {
             <thead>
               <tr className="border-b border-gray-700 text-gray-400">
                 <th className="text-left px-4 py-3 font-medium">Tên</th>
-                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
-                  Số điện thoại
-                </th>
                 <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
                   Ngày vào
                 </th>
@@ -165,9 +159,6 @@ export default function MembersPage() {
                   }`}
                 >
                   <td className="px-4 py-3 font-medium text-white">{m.name}</td>
-                  <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">
-                    {m.phone || "—"}
-                  </td>
                   <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
                     {formatDate(m.join_date)}
                   </td>
@@ -231,15 +222,6 @@ export default function MembersPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Nguyễn Văn A"
-            />
-          </FormField>
-          <FormField label="Số điện thoại">
-            <input
-              className={inputClass}
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="0901234567"
-              type="tel"
             />
           </FormField>
           <FormField label="Ngày vào" required>
