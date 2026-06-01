@@ -41,32 +41,15 @@ export default function FinancesPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const { year: curYear, month: curMonth } = getCurrentYearMonth();
+    const isCurrentMonth = selYear === curYear && selMonth === curMonth;
 
-    // Tự sinh contributions cho thành viên active nếu xem tháng hiện tại
-    if (selYear === curYear && selMonth === curMonth) {
-      const { data: activeMembers } = await supabase
-        .from("members").select("id").eq("is_active", true);
-      if (activeMembers?.length) {
-        await supabase.from("monthly_contributions").upsert(
-          activeMembers.map((m: any) => ({
-            member_id: m.id,
-            year: selYear,
-            month: selMonth,
-            amount: CONTRIBUTION_PER_MEMBER,
-            paid: false,
-          })),
-          { onConflict: "member_id,year,month", ignoreDuplicates: true }
-        );
-      }
-    }
-
-    const [{ data: cData }, { data: eData }] = await Promise.all([
+    const [{ data: activeMembers }, { data: cData }, { data: eData }] = await Promise.all([
+      supabase.from("members").select("id, name, phone").eq("is_active", true).order("name"),
       supabase
         .from("monthly_contributions")
         .select("*, member:members(name, phone)")
         .eq("year", selYear)
-        .eq("month", selMonth)
-        .order("created_at"),
+        .eq("month", selMonth),
       supabase
         .from("expenses")
         .select("*")
@@ -74,7 +57,29 @@ export default function FinancesPage() {
         .eq("month", selMonth)
         .order("expense_date", { ascending: false }),
     ]);
-    setContributions(cData ?? []);
+
+    // Tháng hiện tại: hiển thị tất cả thành viên active, kể cả chưa có DB row
+    let merged: MonthlyContribution[] = cData ?? [];
+    if (isCurrentMonth && activeMembers) {
+      const existingIds = new Set((cData ?? []).map((c: any) => c.member_id));
+      const virtual: MonthlyContribution[] = activeMembers
+        .filter((m: any) => !existingIds.has(m.id))
+        .map((m: any) => ({
+          id: `virtual-${m.id}`,
+          member_id: m.id,
+          year: selYear,
+          month: selMonth,
+          amount: CONTRIBUTION_PER_MEMBER,
+          paid: false,
+          created_at: "",
+          member: { id: m.id, name: m.name, phone: m.phone, join_date: "", is_active: true, created_at: "" },
+        }));
+      merged = [...(cData ?? []), ...virtual].sort((a, b) =>
+        ((a.member as any)?.name ?? "").localeCompare((b.member as any)?.name ?? "", "vi")
+      );
+    }
+
+    setContributions(merged);
     setExpenses(eData ?? []);
     setLoading(false);
   }, [selYear, selMonth]);
@@ -84,13 +89,22 @@ export default function FinancesPage() {
   }, [loadData]);
 
   async function togglePaid(c: MonthlyContribution) {
-    await supabase
-      .from("monthly_contributions")
-      .update({
+    if (c.id.startsWith("virtual-")) {
+      // Chưa có DB row → tạo mới và đánh dấu đã đóng
+      await supabase.from("monthly_contributions").insert({
+        member_id: c.member_id,
+        year: c.year,
+        month: c.month,
+        amount: CONTRIBUTION_PER_MEMBER,
+        paid: true,
+        paid_at: new Date().toISOString(),
+      });
+    } else {
+      await supabase.from("monthly_contributions").update({
         paid: !c.paid,
         paid_at: !c.paid ? new Date().toISOString() : null,
-      })
-      .eq("id", c.id);
+      }).eq("id", c.id);
+    }
     loadData();
   }
 
