@@ -79,8 +79,9 @@ export function resultBadge(result: MatchResult): string {
     : "bg-yellow-900/50 text-yellow-300 border border-yellow-700";
 }
 
+/** Trả về năm/tháng theo giờ Việt Nam (UTC+7) — dùng cả client lẫn server */
 export function getCurrentYearMonth(): { year: number; month: number } {
-  const now = new Date();
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
