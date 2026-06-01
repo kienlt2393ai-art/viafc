@@ -44,10 +44,10 @@ export default function FinancesPage() {
     const isCurrentMonth = selYear === curYear && selMonth === curMonth;
 
     const [{ data: activeMembers }, { data: cData }, { data: eData }] = await Promise.all([
-      supabase.from("members").select("id, name, phone").eq("is_active", true).order("name"),
+      supabase.from("members").select("id, name").eq("is_active", true).order("name"),
       supabase
         .from("monthly_contributions")
-        .select("*, member:members(name, phone)")
+        .select("*, member:members(name)")
         .eq("year", selYear)
         .eq("month", selMonth),
       supabase
@@ -72,7 +72,7 @@ export default function FinancesPage() {
           amount: CONTRIBUTION_PER_MEMBER,
           paid: false,
           created_at: "",
-          member: { id: m.id, name: m.name, phone: m.phone, join_date: "", is_active: true, created_at: "" },
+          member: { id: m.id, name: m.name, phone: "", join_date: "", is_active: true, created_at: "" },
         }));
       merged = [...(cData ?? []), ...virtual].sort((a, b) =>
         ((a.member as any)?.name ?? "").localeCompare((b.member as any)?.name ?? "", "vi")
